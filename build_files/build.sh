@@ -25,6 +25,15 @@ rpm-ostree install \
     https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
 
 
+echo "==> Adding Twingate repository..."
+cat << 'EOF' > /etc/yum.repos.d/twingate.repo
+[twingate]
+name=Twingate Repository
+baseurl=https://packages.twingate.com/rpm/
+enabled=1
+gpgcheck=0
+EOF
+
 
 echo "==> Installing base host packages..."
 # Only install packages here that CANNOT run inside Distrobox/Flatpak
