@@ -47,7 +47,6 @@ rpm-ostree install \
     distrobox \
     podman \
     libva-utils \
-    ffmpeg \
     intel-media-driver \
     fastfetch
 
