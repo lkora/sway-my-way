@@ -10,6 +10,14 @@ set -ouex pipefail
 # https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
 
 
+echo "==> Importing RPM Fusion GPG signing keys..."
+# Fetch and import the RPM Fusion keys into the RPM database
+curl -fsSL -o /tmp/RPM-GPG-KEY-rpmfusion-free "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-free-fedora-2020"
+curl -fsSL -o /tmp/RPM-GPG-KEY-rpmfusion-nonfree "https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-nonfree-fedora-2020"
+rpm --import /tmp/RPM-GPG-KEY-rpmfusion-free /tmp/RPM-GPG-KEY-rpmfusion-nonfree
+rm -f /tmp/RPM-GPG-KEY-rpmfusion-*
+
+
 echo "==> Enabling RPM Fusion repositories..."
 # RPM Fusion provides proprietary codecs, Nvidia drivers (if needed), and hardware acceleration
 rpm-ostree install \
