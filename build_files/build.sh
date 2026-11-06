@@ -34,6 +34,10 @@ enabled=1
 gpgcheck=0
 EOF
 
+echo "==> Allowing unsigned third-party packages (Twingate)..."
+mkdir -p /etc/rpm
+echo "%_pkgverify_level digest" >> /etc/rpm/macros
+
 
 echo "==> Installing base host packages..."
 # Only install packages here that CANNOT run inside Distrobox/Flatpak
