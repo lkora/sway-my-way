@@ -1,6 +1,8 @@
 # Base Image
+ARG FEDORA_VERSION=45
+
 # (You can also use 'ghcr.io/ublue-os/base-main:latest' for pre-configured multimedia codecs)
-FROM quay.io/fedora-ostree-desktops/sway-atomic:latest
+FROM quay.io/fedora-ostree-desktops/sway-atomic:${FEDORA_VERSION}
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
