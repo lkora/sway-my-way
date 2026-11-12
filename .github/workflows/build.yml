@@ -1,61 +1,82 @@
-name: Build and Push Custom Sway Atomic Image
-
+name: Build Fedora 45 Sway image
 on:
-  schedule:
-    - cron: '0 4 * * *' # Build daily at 04:00 UTC
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'README.md'
-      - '.gitignore'
-  workflow_dispatch: # Allows manual trigger from the GitHub web UI
-
+    branches: [main]
+    paths-ignore: ["**.md"]
+  pull_request:
+    paths-ignore: ["**.md"]
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
 env:
-  IMAGE_NAME: sway-my-way
-  IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
-
+  IMAGE: ghcr.io/lkora/sway-my-way
 jobs:
-  build-push:
-    name: Build and push image
+  image:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      id-token: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Generate Image Metadata & Tags
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest,enable=true
-            type=sha,enable=true,prefix=
-            type=schedule,pattern={{date 'YYYYMMDD'}}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - name: Check build scripts
+        run: shellcheck build_files/*.sh tests/*.sh
+      - name: Prepare module signing secrets
+        id: signing
+        env:
+          MODULE_KEY: ${{ secrets.MODULE_SIGNING_KEY }}
+          MODULE_CERT: ${{ secrets.MODULE_SIGNING_CERT_BASE64 }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          umask 077
+          if [[ "$EVENT" == pull_request ]]; then
+            openssl req -new -x509 -newkey rsa:3072 -nodes -days 2 \
+              -subj "/CN=sway-my-way PR check/" \
+              -keyout "$RUNNER_TEMP/module.key" -outform DER -out "$RUNNER_TEMP/module.der"
+          else
+            if [[ -z "$MODULE_KEY" || -z "$MODULE_CERT" ]]; then
+              echo "Set MODULE_SIGNING_KEY and MODULE_SIGNING_CERT_BASE64. See docs/virtualbox.md." >&2
+              exit 1
+            fi
+            printf '%s' "$MODULE_KEY" > "$RUNNER_TEMP/module.key"
+            printf '%s' "$MODULE_CERT" | base64 --decode > "$RUNNER_TEMP/module.der"
+          fi
+          echo "cert-sha256=$(sha256sum "$RUNNER_TEMP/module.der" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push OCI Image
-        uses: docker/build-push-action@v5
+      - name: Build image
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Containerfile
-          push: true
+          file: Containerfile
+          platforms: linux/amd64
           pull: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          tags: ${{ env.IMAGE }}:check
+          build-args: |
+            REQUIRE_MODULE_SIGNING=1
+            MODULE_SIGNING_CERT_SHA256=${{ steps.signing.outputs.cert-sha256 }}
+          secret-files: |
+            module_key=${{ runner.temp }}/module.key
+            module_cert=${{ runner.temp }}/module.der
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Check image before publication
+        run: docker run --rm -i --entrypoint /usr/bin/bash "$IMAGE:check" < tests/image.sh
+      - name: Publish checked image
+        if: github.event_name != 'pull_request'
+        run: |
+          for tag in 45 latest "sha-$GITHUB_SHA"; do
+            docker tag "$IMAGE:check" "$IMAGE:$tag"
+            docker push "$IMAGE:$tag"
+          done
+      - name: Remove signing files
+        if: always()
+        run: rm -f "$RUNNER_TEMP/module.key" "$RUNNER_TEMP/module.der"

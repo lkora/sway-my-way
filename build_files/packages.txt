@@ -1,0 +1,58 @@
+# Desktop and everyday host tools
+chezmoi
+zsh
+neovim
+git
+curl
+wget
+jq
+unzip
+foot
+waybar
+wofi
+mako
+swaybg
+swayidle
+swaylock
+wl-clipboard
+grim
+slurp
+xdg-desktop-portal-wlr
+xdg-desktop-portal-gtk
+jetbrains-mono-fonts
+fontconfig
+fd-find
+ripgrep
+eza
+bat
+fzf
+tree
+btop
+fastfetch
+# Shared libraries for the native user-installed VS Code archive
+gtk3
+libxkbfile
+libsecret
+nss
+alsa-lib
+mesa-libgbm
+# Services and container engines. Moby is Fedora's Docker Engine package.
+syncthing
+flatpak
+podman
+distrobox
+moby-engine
+docker-cli
+docker-compose
+docker-buildx
+# Intel integrated graphics and VA-API
+libva-utils
+intel-media-driver
+# VirtualBox host integration
+VirtualBox
+akmod-VirtualBox
+akmods
+kernel-devel-matched
+mokutil
+openssl
+kmod

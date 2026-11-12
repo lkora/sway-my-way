@@ -1,0 +1,10 @@
+.git
+.github
+secrets
+*.priv
+*.key
+**/*.key
+**/*.priv
+**/*.pem
+docs
+README.md

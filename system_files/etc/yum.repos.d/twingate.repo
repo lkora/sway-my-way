@@ -1,0 +1,5 @@
+[twingate]
+name=Twingate client
+baseurl=https://packages.twingate.com/rpm/
+enabled=0
+gpgcheck=0
